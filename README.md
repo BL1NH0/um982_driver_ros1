@@ -10,20 +10,20 @@ Driver ROS completo para el receptor GNSS **Unicore UM982** con soporte para RTK
 
 Este paquete proporciona una solución completa para integrar el UM982 en sistemas ROS, incluyendo:
 
-- 📡 Lectura de puerto serial del UM982
-- 🛰️ Procesamiento de mensajes NMEA (GGA, RMC)
-- 🧭 Soporte para dual-antenna heading (UNIHEADING)
-- 📶 Inyección de correcciones RTK vía NTRIP
-- 🎯 Publicación de tópicos estándar de ROS
+-  Lectura de puerto serial del UM982
+-  Procesamiento de mensajes NMEA (GGA, RMC)
+-  Soporte para dual-antenna heading (UNIHEADING)
+-  Inyección de correcciones RTK vía NTRIP
+-  Publicación de tópicos estándar de ROS
 
 ## ✨ Características
 
-- ✅ **Modular**: Arquitectura de 2 nodos separados (serial + procesamiento)
-- ✅ **RTK Ready**: Soporte nativo para correcciones NTRIP
-- ✅ **Alta frecuencia**: 20 Hz para GGA/RMC, 1 Hz para UNIHEADING
-- ✅ **Salida limpia**: Dashboard tipo tabla para monitoreo fácil
-- ✅ **Robusto**: Reconexión automática y manejo de errores
-- ✅ **Flexible**: Los tópicos se crean solo si hay datos disponibles
+-  **Modular**: Arquitectura de 2 nodos separados (serial + procesamiento)
+-  **RTK Ready**: Soporte nativo para correcciones NTRIP
+-  **Alta frecuencia**: 20 Hz para GGA/RMC, 1 Hz para UNIHEADING
+-  **Salida limpia**: Dashboard tipo tabla para monitoreo fácil
+-  **Robusto**: Reconexión automática y manejo de errores
+-  **Flexible**: Los tópicos se crean solo si hay datos disponibles
 
 ## 📦 Estructura del Paquete
 
@@ -31,11 +31,13 @@ Este paquete proporciona una solución completa para integrar el UM982 en sistem
 um982_driver/
 ├── scripts/
 │   ├── um982_serial_driver.py    # Lee puerto serial y publica datos crudos
-│   ├── um982_topic_driver.py     # Procesa y convierte a mensajes ROS estándar
+│   └── um982_topic_driver.py     # Procesa y convierte a mensajes ROS estándar
+├── sh/
 │   └── str2str_ntrip.sh          # Inyecta correcciones RTCM vía NTRIP
 ├── launch/
 │   └── launch_um982_driver.launch # Launch file principal
 ├── README.md
+├── Usage.md
 └── package.xml
 ```
 
