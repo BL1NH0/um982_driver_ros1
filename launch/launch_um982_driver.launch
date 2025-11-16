@@ -1,0 +1,99 @@
+<!-- 
+  launch_um982_driver.launch
+   1. Inyecta RTCM vía NTRIP -> serial (str2str)
+   2. Inicia um982_serial_driver.py (lee serial y publica /gngga, /gnrmc, /uniheading)
+   3. Inicia um982_topic_driver.py (suscribe a los tópicos y publica /fix, /odom/rmc, /imu/uniheading, /uniheading/heading)
+-->
+<launch>
+  <!-- ============================================== -->
+  <!-- Parámetros configurables -->
+  <!-- ============================================== -->
+  
+  <!-- Puerto serial -->
+  <arg name="serial_port" default="/dev/ttyUSB0" />
+  <arg name="serial_port_ntrip" default="ttyUSB0" />
+  <arg name="baud" default="115200" />
+  
+  <!-- Configuración NTRIP -->
+  <arg name="ntrip_user" default="vallejosmartinezpj@gmail.com" />
+  <arg name="ntrip_host" default="3.143.243.81" />
+  <arg name="ntrip_port" default="2101" />
+  <arg name="ntrip_mount" default="ManuelBase1" />
+  
+  <!-- Opciones de lanzamiento -->
+  <arg name="enable_ntrip" default="true" />
+  <arg name="enable_serial_driver" default="true" />
+  <arg name="enable_topic_driver" default="true" />
+  
+  <!-- Parámetros del topic driver -->
+  <arg name="frame_id" default="odom" />
+  <arg name="child_frame_id" default="base_link" />
+  <arg name="imu_frame_id" default="imu_link_2" />
+  <arg name="offset_deg" default="-90.0" />
+  <arg name="roll_deg" default="0.0" />
+  <arg name="use_only_yaw" default="false" />
+  
+  <!-- ============================================== -->
+  <!-- 1. NTRIP: Inyección de correcciones RTCM -->
+  <!-- ============================================== -->
+  <group if="$(arg enable_ntrip)">
+    <node pkg="um982_driver" type="str2str_ntrip.sh" name="ntrip_rtcm_injector" 
+          output="screen" respawn="false">
+      <param name="ntrip_url" value="ntrip://$(arg ntrip_user)@$(arg ntrip_host):$(arg ntrip_port)/$(arg ntrip_mount)" />
+      <param name="serial_out" value="serial://$(arg serial_port_ntrip):$(arg baud):8:n:1" />
+    </node>
+  </group>
+
+  <!-- ============================================== -->
+  <!-- 2. Serial Driver UM982: Lee puerto serial -->
+  <!-- ============================================== -->
+  <group if="$(arg enable_serial_driver)">
+    <node pkg="um982_driver" type="um982_serial_driver.py" name="um982_serial_driver" 
+          output="screen" respawn="true" respawn_delay="2">
+      <param name="port" value="$(arg serial_port)" />
+      <param name="baud" value="$(arg baud)" />
+      <!-- Publica:
+           /gngga (nmea_msgs/Sentence) → Solo mensajes GNGGA/GPGGA
+           /gnrmc (nmea_msgs/Sentence) → Solo mensajes GNRMC/GPRMC
+           /uniheading (std_msgs/String) → Tramas crudas #UNIHEADING -->
+    </node>
+  </group>
+
+  <!-- ============================================== -->
+  <!-- 3. Topic Driver UM982: Procesa tópicos NMEA -->
+  <!-- ============================================== -->
+  <group if="$(arg enable_topic_driver)">
+    <node pkg="um982_driver" type="um982_topic_driver.py" name="um982_topic_driver" 
+          output="screen" respawn="true" respawn_delay="2">
+      
+      <!-- Frame IDs -->
+      <param name="frame_id" value="$(arg frame_id)" />
+      <param name="child_frame_id" value="$(arg child_frame_id)" />
+      <param name="imu_frame_id" value="$(arg imu_frame_id)" />
+      
+      <!-- Parámetros de UNIHEADING -->
+      <param name="offset_deg" value="$(arg offset_deg)" />
+      <param name="roll_deg" value="$(arg roll_deg)" />
+      <param name="use_only_yaw" value="$(arg use_only_yaw)" />
+      
+      <!-- Suscribe a:
+           /gngga (nmea_msgs/Sentence)
+           /gnrmc (nmea_msgs/Sentence)
+           /uniheading (std_msgs/String)
+           
+           Publica (solo si recibe datos):
+           /fix (sensor_msgs/NavSatFix) → Posición desde GGA
+           /odom/rmc (nav_msgs/Odometry) → Velocidad desde RMC
+           /imu/uniheading (sensor_msgs/Imu) → Orientación desde UNIHEADING
+           /uniheading/heading (std_msgs/String) → Heading en grados/radianes -->
+    </node>
+  </group>
+
+  <!-- ============================================== -->
+  <!-- Información de estado -->
+  <!-- ============================================== -->
+  <node pkg="rostopic" type="rostopic" name="um982_stack_info" 
+        args="echo -n 'UM982 Stack Activo: Serial=$(arg enable_serial_driver), Topic=$(arg enable_topic_driver), NTRIP=$(arg enable_ntrip)'" 
+        output="screen" launch-prefix="bash -c 'sleep 3; '" />
+
+</launch>
