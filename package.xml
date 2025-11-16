@@ -2,7 +2,7 @@
 <package format="2">
   <name>um982_driver</name>
   <version>0.0.0</version>
-  <description>Calibración satelital de IMU usando GPS RTK</description>
+  <description>ROS driver for Unicore UM982 GNSS receiver with RTK corrections via NTRIP and dual-antenna heading support</description>
   
   <maintainer email="contacto.pablovallejos@gmail.com">Pablo Vallejos</maintainer>
   <maintainer email="contacto.manuelmolina@gmail.com">Manuel Molina</maintainer>
