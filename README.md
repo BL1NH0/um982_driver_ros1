@@ -284,18 +284,24 @@ Las contribuciones son bienvenidas! Por favor:
 
 ## 📄 Licencia
 
-Este proyecto está bajo la licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
-
-## 👥 Autores
-
-- Tu Nombre - *Trabajo inicial*
-
-## 🙏 Agradecimientos
-
-- Unicore Communications por el UM982
-- Comunidad ROS
-- RTKLIB project
+MIT License - Ver [LICENSE](LICENSE) para más detalles.
 
 ---
 
-**¿Preguntas o problemas?** Abre un [issue](https://github.com/tu-usuario/um982_driver/issues)
+## 👥 Autores
+
+**Pablo Vallejos**
+- 📧 contacto.pablovallejos@gmail.com
+
+**Manuel Molina**
+- 📧 contacto.manuelmolina@gmail.com
+
+---
+
+<div align="center">
+
+**⭐ Si este proyecto te resultó útil, considera darle una estrella en GitHub ⭐**
+
+Hecho con ❤️ por Pablo Vallejos y Manuel Molina
+
+</div>
