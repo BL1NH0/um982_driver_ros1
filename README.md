@@ -1,4 +1,4 @@
-# UM982 Driver
+# UM982 Driver ROS 1 Noetic
 
 Driver ROS completo para el receptor GNSS **Unicore UM982** con soporte para RTK, NTRIP y dual-antenna heading.
 
