@@ -1,8 +1,14 @@
+<?xml version="1.0"?>
 <!-- 
   launch_um982_driver.launch
    1. Inyecta RTCM vía NTRIP -> serial (str2str)
    2. Inicia um982_serial_driver.py (lee serial y publica /gngga, /gnrmc, /uniheading)
    3. Inicia um982_topic_driver.py (suscribe a los tópicos y publica /fix, /odom/rmc, /imu/uniheading, /uniheading/heading)
+   
+   FRAME IDs PUBLICADOS POR um982_topic_driver.py:
+     - /fix → frame_id: gps
+     - /odom/rmc → frame_id: gps_vel, child_frame_id: base_link
+     - /imu/uniheading → frame_id: imu_link_2
 -->
 <launch>
   <!-- ============================================== -->
@@ -25,14 +31,47 @@
   <arg name="enable_serial_driver" default="true" />
   <arg name="enable_topic_driver" default="true" />
   
-  <!-- Parámetros del topic driver -->
-  <arg name="frame_id" default="odom" />
-  <arg name="child_frame_id" default="base_link" />
-  <arg name="imu_frame_id" default="imu_link_2" />
+  <!-- Parámetros del topic driver (compatibles con código Python) -->
   <arg name="offset_deg" default="-90.0" />
   <arg name="roll_deg" default="0.0" />
   <arg name="use_only_yaw" default="false" />
+
+  <!-- Offset del sensor GNSS respecto a base_link -->
+  <arg name="gps_x" default="0.124372"/>
+  <arg name="gps_y" default="-0.270"/>
+  <arg name="gps_z" default="0.0"/>
+  <arg name="gps_roll"  default="0.0"/>
+  <arg name="gps_pitch" default="0.0"/>
+  <arg name="gps_yaw"   default="0.0"/>
   
+  <!-- Offset del IMU respecto a base_link -->
+  <arg name="imu_x" default="0.0"/>
+  <arg name="imu_y" default="0.0"/>
+  <arg name="imu_z" default="0.0"/>
+  <arg name="imu_roll"  default="0.0"/>
+  <arg name="imu_pitch" default="0.0"/>
+  <arg name="imu_yaw"   default="0.0"/>
+  
+  <!-- ============================================== -->
+  <!-- TRANSFORMADAS ESTÁTICAS -->
+  <!-- ============================================== -->
+  
+  <!-- TF Estática: base_link → gps -->
+  <!-- El frame 'gps' es usado por /fix (sensor_msgs/NavSatFix) -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="tf_base_to_gps"
+      args="$(arg gps_x) $(arg gps_y) $(arg gps_z) $(arg gps_yaw) $(arg gps_pitch) $(arg gps_roll) base_link gps" />
+      
+  <!-- TF Estática: base_link → imu_link_2 -->
+  <!-- El frame 'imu_link_2' es usado por /imu/uniheading (sensor_msgs/Imu) -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="tf_base_to_imu_2"
+      args="$(arg imu_x) $(arg imu_y) $(arg imu_z) $(arg imu_yaw) $(arg imu_pitch) $(arg imu_roll) base_link imu_link_2"/>
+      
+  <!-- TF Estática: gps_vel → base_link -->
+  <!-- El frame 'gps_vel' es el frame padre de /odom/rmc (nav_msgs/Odometry) -->
+  <!-- Esta TF identidad indica que gps_vel y base_link están en la misma ubicación -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="tf_gpsvel_to_base"
+      args="0 0 0 0 0 0 gps_vel base_link"/>
+    
   <!-- ============================================== -->
   <!-- 1. NTRIP: Inyección de correcciones RTCM -->
   <!-- ============================================== -->
@@ -66,25 +105,20 @@
     <node pkg="um982_driver" type="um982_topic_driver.py" name="um982_topic_driver" 
           output="screen" respawn="true" respawn_delay="2">
       
-      <!-- Frame IDs -->
-      <param name="frame_id" value="$(arg frame_id)" />
-      <param name="child_frame_id" value="$(arg child_frame_id)" />
-      <param name="imu_frame_id" value="$(arg imu_frame_id)" />
-      
       <!-- Parámetros de UNIHEADING -->
       <param name="offset_deg" value="$(arg offset_deg)" />
       <param name="roll_deg" value="$(arg roll_deg)" />
       <param name="use_only_yaw" value="$(arg use_only_yaw)" />
       
-      <!-- Suscribe a:
-           /gngga (nmea_msgs/Sentence)
-           /gnrmc (nmea_msgs/Sentence)
-           /uniheading (std_msgs/String)
+      <!-- NOTA: Frame IDs están hardcoded en el código Python:
+           - /fix usa frame_id = 'gps'
+           - /odom/rmc usa frame_id = 'gps_vel' y child_frame_id = 'base_link'
+           - /imu/uniheading usa frame_id = 'imu_link_2'
            
            Publica (solo si recibe datos):
-           /fix (sensor_msgs/NavSatFix) → Posición desde GGA
-           /odom/rmc (nav_msgs/Odometry) → Velocidad desde RMC
-           /imu/uniheading (sensor_msgs/Imu) → Orientación desde UNIHEADING
+           /fix (sensor_msgs/NavSatFix) → Posición desde GGA [frame: gps]
+           /odom/rmc (nav_msgs/Odometry) → Velocidad desde RMC [frame: gps_vel → base_link]
+           /imu/uniheading (sensor_msgs/Imu) → Orientación desde UNIHEADING [frame: imu_link_2]
            /uniheading/heading (std_msgs/String) → Heading en grados/radianes -->
     </node>
   </group>
