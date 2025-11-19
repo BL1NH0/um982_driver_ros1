@@ -9,9 +9,9 @@ Suscribe a:
   - /uniheading (std_msgs/String) → Procesa UNIHEADING
 
 Publica:
-  - /fix (sensor_msgs/NavSatFix) → Posición + altitud desde GGA
-  - /odom/rmc (nav_msgs/Odometry) → Velocidad lineal desde RMC
-  - /imu/uniheading (sensor_msgs/Imu) → Orientación desde UNIHEADING
+  - /fix (sensor_msgs/NavSatFix) → Posición + altitud desde GGA [frame: gps]
+  - /odom/rmc (nav_msgs/Odometry) → Velocidad lineal desde RMC [frame: gps_vel]
+  - /imu/uniheading (sensor_msgs/Imu) → Orientación desde UNIHEADING [frame: imu_link_2]
   - /uniheading/heading (std_msgs/String) → Heading en grados y radianes
 
 Característica: Si un tópico de entrada no existe, no se publica el correspondiente de salida
@@ -107,10 +107,13 @@ class UM982TopicDriver:
     """
     
     def __init__(self):
-        # Parámetros configurables
-        self.frame_id = rospy.get_param('~frame_id', 'odom')
-        self.child_frame_id = rospy.get_param('~child_frame_id', 'base_link')
-        self.imu_frame_id = rospy.get_param('~imu_frame_id', 'imu_link_2')
+        # Frame IDs fijos según especificación
+        self.gps_frame_id = 'gps'              # Para /fix
+        self.gps_vel_frame_id = 'gps_vel'      # Para /odom/rmc (padre)
+        self.base_link_frame_id = 'base_link'  # Para /odom/rmc (hijo)
+        self.imu_frame_id = 'imu_link_2'       # Para /imu/uniheading
+        
+        # Parámetros de orientación (mantenemos compatibilidad con launch file)
         self.offset_deg = float(rospy.get_param('~offset_deg', -90.0))
         self.roll_deg = float(rospy.get_param('~roll_deg', 0.0))
         self.use_only_yaw = bool(rospy.get_param('~use_only_yaw', False))
@@ -156,6 +159,11 @@ class UM982TopicDriver:
         
         rospy.loginfo("╔════════════════════════════════════════════════════════════════╗")
         rospy.loginfo("║          UM982 TOPIC DRIVER - INICIALIZADO                     ║")
+        rospy.loginfo("╠════════════════════════════════════════════════════════════════╣")
+        rospy.loginfo("║ Frame IDs configurados:                                        ║")
+        rospy.loginfo("║   /fix            → frame_id: gps                              ║")
+        rospy.loginfo("║   /odom/rmc       → frame_id: gps_vel → base_link              ║")
+        rospy.loginfo("║   /imu/uniheading → frame_id: imu_link_2                       ║")
         rospy.loginfo("╠════════════════════════════════════════════════════════════════╣")
         rospy.loginfo("║ Esperando datos de /gngga, /gnrmc, /uniheading...             ║")
         rospy.loginfo("╚════════════════════════════════════════════════════════════════╝")
@@ -212,7 +220,7 @@ class UM982TopicDriver:
                 # Crear publisher si no existe
                 if self.fix_pub is None:
                     self.fix_pub = rospy.Publisher('fix', NavSatFix, queue_size=10)
-                    rospy.loginfo("✓ Tópico /fix creado y activo")
+                    rospy.loginfo("✓ Tópico /fix creado y activo (frame: gps)")
                 
                 # Publicar fix
                 self.fix_pub.publish(fix_msg)
@@ -239,7 +247,7 @@ class UM982TopicDriver:
                 # Crear publisher si no existe
                 if self.odom_pub is None:
                     self.odom_pub = rospy.Publisher('odom/rmc', Odometry, queue_size=10)
-                    rospy.loginfo("✓ Tópico /odom/rmc creado y activo")
+                    rospy.loginfo("✓ Tópico /odom/rmc creado y activo (frame: gps_vel → base_link)")
                 
                 # Publicar odometría
                 self.odom_pub.publish(odom_msg)
@@ -274,7 +282,7 @@ class UM982TopicDriver:
             
             if self.imu_pub is None:
                 self.imu_pub = rospy.Publisher('/imu/uniheading', Imu, queue_size=20)
-                rospy.loginfo("✓ Tópico /imu/uniheading creado y activo")
+                rospy.loginfo("✓ Tópico /imu/uniheading creado y activo (frame: imu_link_2)")
             
             # Publicar heading en grados y radianes
             hdg_msg = String()
@@ -300,7 +308,7 @@ class UM982TopicDriver:
             # Crear mensaje IMU
             imu = Imu()
             imu.header.stamp = rospy.Time.now()
-            imu.header.frame_id = self.imu_frame_id
+            imu.header.frame_id = self.imu_frame_id  # imu_link_2
             
             imu.orientation.x = qx
             imu.orientation.y = qy
@@ -347,7 +355,7 @@ class UM982TopicDriver:
         # Crear mensaje NavSatFix
         fix = NavSatFix()
         fix.header.stamp = timestamp
-        fix.header.frame_id = self.frame_id
+        fix.header.frame_id = self.gps_frame_id  # 'gps'
         
         try:
             # Calidad del fix
@@ -437,8 +445,8 @@ class UM982TopicDriver:
             # Crear mensaje Odometry
             odom_msg = Odometry()
             odom_msg.header.stamp = timestamp
-            odom_msg.header.frame_id = self.frame_id
-            odom_msg.child_frame_id = self.child_frame_id
+            odom_msg.header.frame_id = self.gps_vel_frame_id      # 'gps_vel'
+            odom_msg.child_frame_id = self.base_link_frame_id     # 'base_link'
             
             # Velocidad lineal (convertir de nudos a m/s)
             # 1 nudo = 0.514444 m/s
