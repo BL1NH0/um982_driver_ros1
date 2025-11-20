@@ -24,10 +24,15 @@ include_directories(
 ## Install ##
 #############
 
-## Instala los scripts Python y shell como ejecutables
+## Instala los scripts Python como ejecutables
 catkin_install_python(PROGRAMS
   scripts/um982_serial_driver.py
   scripts/um982_topic_driver.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+## Instala los scripts de Bash como ejecutables
+install(PROGRAMS
   sh/str2str_ntrip.sh
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
