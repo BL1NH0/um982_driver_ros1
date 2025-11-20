@@ -5,10 +5,6 @@
    2. Inicia um982_serial_driver.py (lee serial y publica /gngga, /gnrmc, /uniheading)
    3. Inicia um982_topic_driver.py (suscribe a los tópicos y publica /fix, /odom/rmc, /imu/uniheading, /uniheading/heading)
    
-   FRAME IDs PUBLICADOS POR um982_topic_driver.py:
-     - /fix → frame_id: gps
-     - /odom/rmc → frame_id: gps_vel, child_frame_id: base_link
-     - /imu/uniheading → frame_id: imu_link_2
 -->
 <launch>
   <!-- ============================================== -->
@@ -57,20 +53,12 @@
   <!-- ============================================== -->
   
   <!-- TF Estática: base_link → gps -->
-  <!-- El frame 'gps' es usado por /fix (sensor_msgs/NavSatFix) -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="tf_base_to_gps"
       args="$(arg gps_x) $(arg gps_y) $(arg gps_z) $(arg gps_yaw) $(arg gps_pitch) $(arg gps_roll) base_link gps" />
       
   <!-- TF Estática: base_link → imu_link_2 -->
-  <!-- El frame 'imu_link_2' es usado por /imu/uniheading (sensor_msgs/Imu) -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="tf_base_to_imu_2"
       args="$(arg imu_x) $(arg imu_y) $(arg imu_z) $(arg imu_yaw) $(arg imu_pitch) $(arg imu_roll) base_link imu_link_2"/>
-      
-  <!-- TF Estática: gps_vel → base_link -->
-  <!-- El frame 'gps_vel' es el frame padre de /odom/rmc (nav_msgs/Odometry) -->
-  <!-- Esta TF identidad indica que gps_vel y base_link están en la misma ubicación -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="tf_gpsvel_to_base"
-      args="0 0 0 0 0 0 gps_vel base_link"/>
     
   <!-- ============================================== -->
   <!-- 1. NTRIP: Inyección de correcciones RTCM -->
@@ -91,10 +79,6 @@
           output="screen" respawn="true" respawn_delay="2">
       <param name="port" value="$(arg serial_port)" />
       <param name="baud" value="$(arg baud)" />
-      <!-- Publica:
-           /gngga (nmea_msgs/Sentence) → Solo mensajes GNGGA/GPGGA
-           /gnrmc (nmea_msgs/Sentence) → Solo mensajes GNRMC/GPRMC
-           /uniheading (std_msgs/String) → Tramas crudas #UNIHEADING -->
     </node>
   </group>
 
@@ -104,22 +88,9 @@
   <group if="$(arg enable_topic_driver)">
     <node pkg="um982_driver" type="um982_topic_driver.py" name="um982_topic_driver" 
           output="screen" respawn="true" respawn_delay="2">
-      
-      <!-- Parámetros de UNIHEADING -->
       <param name="offset_deg" value="$(arg offset_deg)" />
       <param name="roll_deg" value="$(arg roll_deg)" />
       <param name="use_only_yaw" value="$(arg use_only_yaw)" />
-      
-      <!-- NOTA: Frame IDs están hardcoded en el código Python:
-           - /fix usa frame_id = 'gps'
-           - /odom/rmc usa frame_id = 'gps_vel' y child_frame_id = 'base_link'
-           - /imu/uniheading usa frame_id = 'imu_link_2'
-           
-           Publica (solo si recibe datos):
-           /fix (sensor_msgs/NavSatFix) → Posición desde GGA [frame: gps]
-           /odom/rmc (nav_msgs/Odometry) → Velocidad desde RMC [frame: gps_vel → base_link]
-           /imu/uniheading (sensor_msgs/Imu) → Orientación desde UNIHEADING [frame: imu_link_2]
-           /uniheading/heading (std_msgs/String) → Heading en grados/radianes -->
     </node>
   </group>
 
